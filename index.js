@@ -73,5 +73,5 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ success: false, message: err.message || 'Server error' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => console.log(`✅ arzepak Server running on port ${PORT}`));

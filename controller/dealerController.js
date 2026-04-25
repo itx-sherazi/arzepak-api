@@ -14,13 +14,24 @@ function formatCnic(str) {
   return `${d.slice(0, 5)}-${d.slice(5, 12)}-${d.slice(12, 13)}`;
 }
 
-// POST /api/dealers/register — register as dealer
+// POST /api/dealers/register — register as dealer (CNIC, areas, etc. can be completed later in dashboard)
 exports.registerDealer = async (req, res) => {
   try {
     const existing = await Dealer.findOne({ userId: req.user._id });
     if (existing) return res.status(409).json({ success: false, message: 'Already registered as dealer' });
 
-    const { agencyName, cnic, bio, whatsapp, city, areasServed, experience } = req.body;
+    const {
+      agencyName,
+      companyEmail,
+      address,
+      cnic,
+      bio,
+      whatsapp,
+      city,
+      areasServed,
+      experience,
+      logo,
+    } = req.body;
 
     if (!agencyName || !String(agencyName).trim()) {
       return res.status(400).json({ success: false, message: 'Agency name is required' });
@@ -28,23 +39,39 @@ exports.registerDealer = async (req, res) => {
     if (!city || !String(city).trim()) {
       return res.status(400).json({ success: false, message: 'City is required' });
     }
-    const cnicDigits = normalizeCnicDigits(cnic);
-    if (cnicDigits.length !== 13) {
-      return res.status(400).json({ success: false, message: 'Valid CNIC number (13 digits) is required' });
+    if (!companyEmail || !String(companyEmail).trim()) {
+      return res.status(400).json({ success: false, message: 'Company email is required' });
     }
+    if (!address || !String(address).trim()) {
+      return res.status(400).json({ success: false, message: 'Agency address is required' });
+    }
+
+    const cnicDigits = normalizeCnicDigits(cnic);
+    let cnicValue = '';
+    if (cnicDigits.length === 0) {
+      cnicValue = '';
+    } else if (cnicDigits.length === 13) {
+      cnicValue = formatCnic(cnicDigits);
+    } else {
+      return res.status(400).json({ success: false, message: 'CNIC must be 13 digits' });
+    }
+
+    const logoUrl = logo != null && String(logo).trim() ? String(logo).trim() : undefined;
 
     const dealer = await Dealer.create({
       userId: req.user._id,
       agencyName: String(agencyName).trim(),
-      cnic: formatCnic(cnicDigits),
-      bio,
-      whatsapp,
+      companyEmail: String(companyEmail).trim().toLowerCase(),
+      address: String(address).trim(),
+      cnic: cnicValue,
+      bio: bio != null ? String(bio) : '',
+      whatsapp: whatsapp != null && String(whatsapp).trim() ? String(whatsapp).trim() : '',
       city: String(city).trim(),
-      areasServed,
-      experience,
+      areasServed: Array.isArray(areasServed) ? areasServed : [],
+      experience: experience != null && experience !== '' ? Number(experience) : 0,
+      ...(logoUrl ? { logo: logoUrl } : {}),
     });
 
-    // Update user role
     await User.findByIdAndUpdate(req.user._id, { role: 'DEALER' });
 
     res.status(201).json({ success: true, data: dealer });
@@ -105,7 +132,7 @@ exports.getMyProfile = async (req, res) => {
 // PUT /api/dealers/me/profile — update own dealer profile
 exports.updateMyProfile = async (req, res) => {
   try {
-    const { agencyName, bio, whatsapp, city, areasServed, logo, experience, cnic } = req.body;
+    const { agencyName, companyEmail, address, bio, whatsapp, city, areasServed, logo, experience, cnic } = req.body;
     const existing = await Dealer.findOne({ userId: req.user._id });
     if (!existing) return res.status(404).json({ success: false, message: 'Dealer profile not found' });
 
@@ -122,6 +149,8 @@ exports.updateMyProfile = async (req, res) => {
 
     const update = {};
     if (agencyName !== undefined) update.agencyName = agencyName;
+    if (companyEmail !== undefined) update.companyEmail = companyEmail;
+    if (address !== undefined) update.address = address;
     if (bio !== undefined) update.bio = bio;
     if (whatsapp !== undefined) update.whatsapp = whatsapp;
     if (city !== undefined) update.city = city;

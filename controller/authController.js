@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/user');
 const Dealer = require('../models/dealer');
 const { sendToken } = require('../utils/jwt');
@@ -96,5 +98,60 @@ exports.changePassword = async (req, res) => {
     res.json({ success: true, message: 'Password updated' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/auth/google — verify Google ID token (used by NextAuth on my-app) and return JWT
+exports.googleAuth = async (req, res) => {
+  try {
+    const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+    if (!clientId) {
+      return res.status(500).json({ success: false, message: 'GOOGLE_CLIENT_ID is not set on the server' });
+    }
+
+    const { idToken } = req.body;
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ success: false, message: 'idToken is required' });
+    }
+
+    // audience must be the same OAuth 2.0 Web client id as my-app (NextAuth GoogleProvider)
+    const gClient = new OAuth2Client(clientId);
+    const ticket = await gClient.verifyIdToken({
+      idToken: idToken.trim(),
+      audience: clientId,
+    });
+    const payload = ticket.getPayload();
+    if (!payload?.email) {
+      return res.status(400).json({ success: false, message: 'Invalid Google token' });
+    }
+
+    const email = String(payload.email).toLowerCase();
+    const name = (payload.name && String(payload.name).trim()) || email.split('@')[0];
+    const picture = payload.picture ? String(payload.picture).trim() : undefined;
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      const randomPass = crypto.randomBytes(32).toString('hex');
+      user = await User.create({
+        name,
+        email,
+        phone: '',
+        password: randomPass,
+        role: 'DEALER',
+        ...(picture ? { avatar: picture } : {}),
+      });
+    } else {
+      if (user.role === 'USER') {
+        user.role = 'DEALER';
+      }
+      if (picture && !user.avatar) user.avatar = picture;
+      if (name) user.name = name;
+      await user.save();
+    }
+
+    return sendToken(res, user, 200);
+  } catch (err) {
+    console.error('googleAuth', err);
+    return res.status(401).json({ success: false, message: err.message || 'Google sign-in failed' });
   }
 };

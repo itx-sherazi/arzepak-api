@@ -4,6 +4,8 @@ const dealerSchema = new mongoose.Schema(
   {
     userId:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     agencyName:    { type: String },
+    companyEmail:  { type: String },
+    address:       { type: String },
     cnic:          { type: String },
     cnicDoc:       { type: String },   // Cloudinary URL
     licenseDoc:    { type: String },   // Cloudinary URL
