@@ -6,6 +6,7 @@ const { deleteImagesByRefs } = require('./uploadController');
 function collectProjectCloudinaryUrls(doc) {
   if (!doc) return [];
   const urls = [];
+  if (doc.logo && typeof doc.logo === 'string') urls.push(doc.logo);
   if (Array.isArray(doc.images)) doc.images.forEach((u) => { if (u && typeof u === 'string') urls.push(u); });
   if (doc.paymentPlan && typeof doc.paymentPlan === 'string') urls.push(doc.paymentPlan);
   if (Array.isArray(doc.paymentPlans)) doc.paymentPlans.forEach((pp) => { if (pp?.image) urls.push(pp.image); });
@@ -17,6 +18,7 @@ function collectProjectCloudinaryUrls(doc) {
 function collectImageUrlsFromBody(body) {
   const set = new Set();
   if (!body || typeof body !== 'object') return set;
+  if (body.logo) set.add(body.logo);
   if (Array.isArray(body.images)) body.images.forEach((u) => { if (u) set.add(u); });
   if (body.paymentPlan) set.add(body.paymentPlan);
   if (Array.isArray(body.paymentPlans)) body.paymentPlans.forEach((pp) => { if (pp?.image) set.add(pp.image); });
@@ -64,7 +66,6 @@ exports.getProject = async (req, res) => {
   try {
     const project = await Project.findOne({ slug: req.params.slug });
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
-    await Project.findByIdAndUpdate(project._id, { $inc: { views: 1 } });
     res.json({ success: true, data: project });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -149,7 +150,7 @@ exports.adminGetProjects = async (req, res) => {
     const filter = status ? { status } : {};
     const skip = (Number(page) - 1) * Number(limit);
     const [projects, total] = await Promise.all([
-      Project.find(filter).select('title slug city status isFeatured minPrice maxPrice views createdAt images').sort('-createdAt').skip(skip).limit(Number(limit)),
+      Project.find(filter).select('title slug city status isFeatured minPrice maxPrice createdAt images').sort('-createdAt').skip(skip).limit(Number(limit)),
       Project.countDocuments(filter),
     ]);
     res.json({ success: true, data: projects, total, pages: Math.ceil(total / Number(limit)) });

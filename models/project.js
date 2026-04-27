@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const unitSchema = new mongoose.Schema({
-  name:      { type: String, required: true },  // e.g. "Studio Apartments"
+  name:      { type: String },
   minPrice:  { type: Number },
   maxPrice:  { type: Number },
   minArea:   { type: Number },
@@ -19,10 +19,10 @@ const updateSchema = new mongoose.Schema({
 }, { _id: true });
 
 const projectSchema = new mongoose.Schema({
-  title:       { type: String, required: true, trim: true },
+  title:       { type: String, trim: true },
   slug:        { type: String, required: true, lowercase: true, trim: true },
-  city:        { type: String, required: true },
-  address:     { type: String, required: true },
+  city:        { type: String },
+  address:     { type: String },
   description: { type: String },
   developer:   { type: String },
   marketedBy:  { type: String },
@@ -39,6 +39,7 @@ const projectSchema = new mongoose.Schema({
     nearbyFacilities: [{ type: String }],
     otherFacilities:  [{ type: String }],
   },
+  logo:         { type: String },            // Project logo Cloudinary URL
   images:       [{ type: String }],         // Cloudinary URLs
   floorPlans:   [{ label: String, image: String }],
   paymentPlan:  { type: String },           // legacy single image (kept for compat)
@@ -59,7 +60,6 @@ const projectSchema = new mongoose.Schema({
  
   status:       { type: String, enum: ['DRAFT','BOOKING_OPEN','UNDER_CONSTRUCTION','LAUNCHING_SOON','COMPLETED','SOLD_OUT'], default: 'BOOKING_OPEN' },
   isFeatured:   { type: Boolean, default: false },
-  views:        { type: Number, default: 0 },
   addedBy:      { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   
 }, { timestamps: true });
