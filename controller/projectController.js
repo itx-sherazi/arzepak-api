@@ -2,6 +2,39 @@ const mongoose = require('mongoose');
 const Project = require('../models/project');
 const { deleteImagesByRefs } = require('./uploadController');
 
+/* Resolve Google Maps URL to lat/lng — same logic as adminRoutes */
+async function resolveMapCoords(url) {
+  if (!url) return null;
+  const extract = (s) => {
+    if (!s) return null;
+    let m = s.match(/@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/);
+    if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+    m = s.match(/!3d(-?\d{1,3}\.\d{4,})!4d(-?\d{1,3}\.\d{4,})/);
+    if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+    m = s.match(/ll=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/);
+    if (m) return { latitude: parseFloat(m[1]), longitude: parseFloat(m[2]) };
+    return null;
+  };
+  const direct = extract(url);
+  if (direct) return direct;
+  try {
+    const H = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US' };
+    async function chain(u, d = 0) {
+      if (d > 6) return u;
+      const r = await fetch(u, { redirect: 'manual', headers: H, signal: AbortSignal.timeout(5000) });
+      const loc = r.headers.get('location');
+      if (loc) { const next = loc.startsWith('http') ? loc : new URL(loc, u).href; return extract(next) ? next : chain(next, d + 1); }
+      return u;
+    }
+    const final = await chain(url);
+    const fromFinal = extract(final);
+    if (fromFinal) return fromFinal;
+    const resp = await fetch(final, { headers: H, signal: AbortSignal.timeout(6000) });
+    const html = await resp.text();
+    return extract(resp.url) || extract(html);
+  } catch { return null; }
+}
+
 /** All Cloudinary image URLs stored on a project document. */
 function collectProjectCloudinaryUrls(doc) {
   if (!doc) return [];
@@ -12,6 +45,7 @@ function collectProjectCloudinaryUrls(doc) {
   if (Array.isArray(doc.paymentPlans)) doc.paymentPlans.forEach((pp) => { if (pp?.image) urls.push(pp.image); });
   if (Array.isArray(doc.floorPlans)) doc.floorPlans.forEach((fp) => { if (fp?.image) urls.push(fp.image); });
   if (Array.isArray(doc.updates)) doc.updates.forEach((u) => { if (u?.image) urls.push(u.image); });
+  if (Array.isArray(doc.galleries)) doc.galleries.forEach((g) => { if (Array.isArray(g?.images)) g.images.forEach((img) => { if (img) urls.push(img); }); });
   return [...new Set(urls)].filter((u) => u.includes('res.cloudinary.com'));
 }
 
@@ -24,6 +58,7 @@ function collectImageUrlsFromBody(body) {
   if (Array.isArray(body.paymentPlans)) body.paymentPlans.forEach((pp) => { if (pp?.image) set.add(pp.image); });
   if (Array.isArray(body.floorPlans)) body.floorPlans.forEach((fp) => { if (fp?.image) set.add(fp.image); });
   if (Array.isArray(body.updates)) body.updates.forEach((u) => { if (u?.image) set.add(u.image); });
+  if (Array.isArray(body.galleries)) body.galleries.forEach((g) => { if (Array.isArray(g?.images)) g.images.forEach((img) => { if (img) set.add(img); }); });
   return set;
 }
 
@@ -75,10 +110,15 @@ exports.getProject = async (req, res) => {
 // POST /api/admin/projects  — admin only
 exports.createProject = async (req, res) => {
   try {
-    const { title } = req.body;
+    const body = { ...req.body };
     const rand = Math.floor(1000 + Math.random() * 9000);
-    const slug = slugify(title, rand);
-    const project = await Project.create({ ...req.body, slug, addedBy: req.user._id });
+    body.slug = slugify(body.title || 'project', rand);
+    /* Auto-resolve mapUrl → lat/lng if not provided */
+    if (body.mapUrl && !body.latitude) {
+      const coords = await resolveMapCoords(body.mapUrl);
+      if (coords) { body.latitude = coords.latitude; body.longitude = coords.longitude; }
+    }
+    const project = await Project.create({ ...body, addedBy: req.user._id });
     res.status(201).json({ success: true, data: project });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -93,6 +133,12 @@ exports.updateProject = async (req, res) => {
     const body = { ...req.body };
     delete body.slug;
     delete body.addedBy;
+
+    /* Auto-resolve mapUrl → lat/lng if mapUrl changed and no coords provided */
+    if (body.mapUrl && !body.latitude) {
+      const coords = await resolveMapCoords(body.mapUrl);
+      if (coords) { body.latitude = coords.latitude; body.longitude = coords.longitude; }
+    }
 
     const oldUrls = collectProjectCloudinaryUrls(existing.toObject ? existing.toObject() : existing);
     const newUrls = collectImageUrlsFromBody(body);

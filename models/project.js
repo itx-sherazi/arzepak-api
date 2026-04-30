@@ -41,6 +41,7 @@ const projectSchema = new mongoose.Schema({
   },
   logo:         { type: String },            // Project logo Cloudinary URL
   images:       [{ type: String }],         // Cloudinary URLs
+  galleries:    [{ title: String, images: [String] }], // Named image galleries
   floorPlans:   [{ label: String, image: String }],
   paymentPlan:  { type: String },           // legacy single image (kept for compat)
   paymentPlans: [{ label: String, image: String }], // multiple payment plan cards
