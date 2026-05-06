@@ -61,6 +61,7 @@ const projectSchema = new mongoose.Schema({
  
   status:       { type: String, enum: ['DRAFT','BOOKING_OPEN','UNDER_CONSTRUCTION','LAUNCHING_SOON','COMPLETED','SOLD_OUT'], default: 'BOOKING_OPEN' },
   isFeatured:   { type: Boolean, default: false },
+  contactNumber: { type: String, trim: true },
   addedBy:      { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   
 }, { timestamps: true });
