@@ -103,15 +103,20 @@ exports.getDealers = async (req, res) => {
   }
 };
 
-// GET /api/dealers/:id — public dealer profile
+// GET /api/dealers/:id — public dealer profile (single aggregated query)
 exports.getDealer = async (req, res) => {
   try {
-    const dealer = await Dealer.findById(req.params.id)
-      .populate('userId', 'name email phone avatar createdAt');
+    const [dealer, properties] = await Promise.all([
+      Dealer.findById(req.params.id)
+        .populate('userId', 'name avatar createdAt')
+        .lean(),
+      Property.find({ dealerId: req.params.id, status: 'ACTIVE' })
+        .select('title slug city areaName price purpose type area areaUnit images bedrooms')
+        .sort('-createdAt')
+        .limit(9)
+        .lean(),
+    ]);
     if (!dealer) return res.status(404).json({ success: false, message: 'Dealer not found' });
-
-    const properties = await Property.find({ dealerId: dealer._id, status: 'ACTIVE' }).limit(6).sort('-createdAt');
-
     res.json({ success: true, data: { dealer, properties } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

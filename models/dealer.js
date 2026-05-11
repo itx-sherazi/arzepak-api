@@ -22,6 +22,9 @@ const dealerSchema = new mongoose.Schema(
     // stats (denormalised for perf)
     totalListings: { type: Number, default: 0 },
     totalLeads:    { type: Number, default: 0 },
+    totalViews:    { type: Number, default: 0 },
+    avgRating:     { type: Number, default: 0, min: 0, max: 5 },
+    totalReviews:  { type: Number, default: 0 },
   },
   { timestamps: true }
 );

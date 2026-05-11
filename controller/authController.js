@@ -5,6 +5,8 @@ const Dealer = require('../models/dealer');
 const { sendToken } = require('../utils/jwt');
 const { deleteImagesByRefs } = require('./uploadController');
 
+const tokenBlacklist = require('../utils/tokenBlacklist');
+
 // POST /api/auth/register — public signup is dealer-only (arzepak portal)
 exports.register = async (req, res) => {
   try {
@@ -45,7 +47,10 @@ exports.login = async (req, res) => {
 };
 
 // POST /api/auth/logout
-exports.logout = async (_req, res) => {
+exports.logout = async (req, res) => {
+  /* Blacklist the current token so it can't be reused */
+  const token = req.cookies?.token || req.headers?.authorization?.split(' ')[1];
+  if (token) tokenBlacklist.add(token); // invalidate this session
   res.cookie('token', '', { maxAge: 0 });
   res.json({ success: true, message: 'Logged out' });
 };

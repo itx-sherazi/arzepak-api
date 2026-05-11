@@ -25,6 +25,8 @@ exports.getProperties = async (req, res) => {
       sort = '-createdAt', page = 1, limit = 12,
     } = req.query;
 
+    const safeLimit = Math.min(100, Math.max(1, Number(limit)));
+    const safePage  = Math.max(1, Number(page));
     const filter = { status: 'ACTIVE' };
     if (purpose)    filter.purpose  = purpose;
     if (type)       filter.type     = type;
@@ -49,17 +51,18 @@ exports.getProperties = async (req, res) => {
       filter.createdAt = { $gte: new Date(Date.now() - days * 864e5) };
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (safePage - 1) * safeLimit;
     const [properties, total] = await Promise.all([
       Property.find(filter)
         .populate('dealerId', 'agencyName whatsapp isVerified city logo')
         .sort(sort)
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(safeLimit)
+        .lean(),
       Property.countDocuments(filter),
     ]);
 
-    res.json({ success: true, data: properties, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+    res.json({ success: true, data: properties, total, page: safePage, pages: Math.ceil(total / safeLimit) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -1,10 +1,10 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+const jwt            = require('jsonwebtoken');
+const User           = require('../models/user');
+const tokenBlacklist = require('../utils/tokenBlacklist');
 
 const protect = async (req, res, next) => {
   try {
     let token;
-
     if (req.headers.authorization?.startsWith('Bearer ')) {
       token = req.headers.authorization.split(' ')[1];
     } else if (req.cookies?.token) {
@@ -12,6 +12,10 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    /* Reject blacklisted tokens (logged-out sessions) */
+    if (tokenBlacklist.has(token))
+      return res.status(401).json({ success: false, message: 'Token has been invalidated. Please log in again.' });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const uid = decoded.id ?? decoded._id ?? decoded.userId;

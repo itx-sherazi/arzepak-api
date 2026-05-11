@@ -91,5 +91,6 @@ propertySchema.index({ price: 1 });
 propertySchema.index({ isFeatured: 1, status: 1 });
 propertySchema.index({ createdAt: -1 });
 propertySchema.index({ city: 1, areaName: 1, status: 1 });
+propertySchema.index({ title: 'text', description: 'text', areaName: 'text', city: 'text' });
 
 module.exports = mongoose.model('Property', propertySchema);

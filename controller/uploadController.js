@@ -67,7 +67,11 @@ async function deleteImagesByRefs(refs = []) {
   const normalized = normalizeImageRefs(refs);
   const ids = normalized.map((r) => r.publicId).filter(Boolean);
   if (ids.length === 0) return;
-  await Promise.all(ids.map((id) => cloudinary.uploader.destroy(id)));
+  const results = await Promise.allSettled(ids.map((id) => cloudinary.uploader.destroy(id)));
+  results.forEach((r, i) => {
+    if (r.status === 'rejected')
+      console.error(`[Cloudinary] Failed to delete ${ids[i]}:`, r.reason?.message || r.reason);
+  });
 }
 exports.deleteImagesByRefs = deleteImagesByRefs;
 
@@ -82,6 +86,13 @@ exports.uploadImages = async (req, res) => {
 
     if (images.length > 20)
       return res.status(400).json({ success: false, message: 'Max 20 images allowed' });
+
+    /* Validate each image size (base64 ~1.37x actual size) — reject > 8MB per image */
+    const MAX_BYTES = 8 * 1024 * 1024 * 1.37;
+    for (const img of images) {
+      if (typeof img === 'string' && img.length > MAX_BYTES)
+        return res.status(413).json({ success: false, message: 'One or more images exceed 8MB limit' });
+    }
 
     const uploads = await Promise.all(
       images.map((base64) =>
