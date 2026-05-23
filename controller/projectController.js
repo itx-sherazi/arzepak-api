@@ -46,6 +46,7 @@ function collectProjectCloudinaryUrls(doc) {
   if (Array.isArray(doc.floorPlans)) doc.floorPlans.forEach((fp) => { if (fp?.image) urls.push(fp.image); });
   if (Array.isArray(doc.updates)) doc.updates.forEach((u) => { if (u?.image) urls.push(u.image); });
   if (Array.isArray(doc.galleries)) doc.galleries.forEach((g) => { if (Array.isArray(g?.images)) g.images.forEach((img) => { if (img) urls.push(img); }); });
+  if (Array.isArray(doc.renders3d)) doc.renders3d.forEach((u) => { if (u && typeof u === 'string') urls.push(u); });
   return [...new Set(urls)].filter((u) => u.includes('res.cloudinary.com'));
 }
 
@@ -59,6 +60,7 @@ function collectImageUrlsFromBody(body) {
   if (Array.isArray(body.floorPlans)) body.floorPlans.forEach((fp) => { if (fp?.image) set.add(fp.image); });
   if (Array.isArray(body.updates)) body.updates.forEach((u) => { if (u?.image) set.add(u.image); });
   if (Array.isArray(body.galleries)) body.galleries.forEach((g) => { if (Array.isArray(g?.images)) g.images.forEach((img) => { if (img) set.add(img); }); });
+  if (Array.isArray(body.renders3d)) body.renders3d.forEach((u) => { if (u) set.add(u); });
   return set;
 }
 

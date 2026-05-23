@@ -11,6 +11,7 @@ const dealerSchema = new mongoose.Schema(
     licenseDoc:    { type: String },   // Cloudinary URL
     bio:           { type: String },
     whatsapp:      { type: String },
+    phone:         { type: String },
     city:          { type: String, required: true },
     areasServed:   [{ type: String }],
     logo:          { type: String },   // Cloudinary URL

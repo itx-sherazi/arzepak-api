@@ -137,7 +137,7 @@ exports.getMyProfile = async (req, res) => {
 // PUT /api/dealers/me/profile — update own dealer profile
 exports.updateMyProfile = async (req, res) => {
   try {
-    const { agencyName, companyEmail, address, bio, whatsapp, city, areasServed, logo, experience, cnic } = req.body;
+    const { agencyName, companyEmail, address, bio, whatsapp, phone, city, areasServed, logo, experience, cnic } = req.body;
     const existing = await Dealer.findOne({ userId: req.user._id });
     if (!existing) return res.status(404).json({ success: false, message: 'Dealer profile not found' });
 
@@ -158,6 +158,7 @@ exports.updateMyProfile = async (req, res) => {
     if (address !== undefined) update.address = address;
     if (bio !== undefined) update.bio = bio;
     if (whatsapp !== undefined) update.whatsapp = whatsapp;
+    if (phone !== undefined) update.phone = phone;
     if (city !== undefined) update.city = city;
     if (areasServed !== undefined) update.areasServed = areasServed;
     if (logo !== undefined) update.logo = logo;

@@ -72,7 +72,7 @@ exports.getProperties = async (req, res) => {
 exports.getProperty = async (req, res) => {
   try {
     const property = await Property.findOne({ slug: req.params.slug })
-      .populate('dealerId', 'agencyName whatsapp city bio logo isVerified areasServed experience')
+      .populate('dealerId', 'agencyName whatsapp phone city bio logo isVerified areasServed experience')
       .populate('userId', 'name phone avatar');
 
     if (!property || property.status === 'REJECTED')
