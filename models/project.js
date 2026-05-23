@@ -42,7 +42,7 @@ const projectSchema = new mongoose.Schema({
   logo:         { type: String },            // Project logo Cloudinary URL
   images:       [{ type: String }],         // Cloudinary URLs
   galleries:    [{ title: String, images: [String] }], // Named image galleries
-  renders3d:    [{ type: String }],                    // 3D architectural render images
+  renders3d:    [{ title: String, image: String }],   // 3D renders with title
   floorPlans:   [{ label: String, image: String }],
   paymentPlan:  { type: String },           // legacy single image (kept for compat)
   paymentPlans: [{ label: String, image: String }], // multiple payment plan cards
