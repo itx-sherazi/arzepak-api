@@ -45,7 +45,9 @@ const projectSchema = new mongoose.Schema({
   renders3d:    [{ title: String, image: String }],   // 3D renders with title
   floorPlans:   [{ label: String, image: String }],
   paymentPlan:  { type: String },           // legacy single image (kept for compat)
-  paymentPlans: [{ label: String, image: String }], // multiple payment plan cards
+  paymentPlans: [{ label: String, images: [String] }], // payment plan with multiple page images
+  bookingForm:  [{ label: String, images: [String] }], // booking form pages
+  catalogue:    [{ label: String, images: [String] }], // catalogue pages
   units:        [unitSchema],
   updates:      [updateSchema],
   latitude:     { type: Number },
