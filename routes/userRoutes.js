@@ -4,6 +4,8 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const {
   register, login, logout, getMe, updateProfile, changePassword, googleAuth,
+  forgotPassword,
+  resetPassword,
 } = require('../controller/authController');
 
 /* ── Validation middleware ── */
@@ -33,5 +35,8 @@ router.post('/logout',           logout);
 router.get('/me',                protect, getMe);
 router.put('/profile',           protect, updateProfile);
 router.put('/change-password',   protect, changePassword);
+router.post('/forgot', forgotPassword);
+router.post('/reset', resetPassword);
+
 
 module.exports = router;
