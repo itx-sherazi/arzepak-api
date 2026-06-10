@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
     avatar:     { type: String },
     isVerified: { type: Boolean, default: false },
     isBanned:   { type: Boolean, default: false },
+       resetPasswordToken: { type: String },
+      resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );
